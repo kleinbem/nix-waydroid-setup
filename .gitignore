@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Nix
+result*
+.direnv/
+
+# Editor
+.vscode/
+.idea/
+
+# Temp
+*.log
