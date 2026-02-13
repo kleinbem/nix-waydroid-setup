@@ -3,7 +3,7 @@
 set -euo pipefail
 
 echo "Getting Android ID..."
-android_id=$(waydroid shell su -c "sqlite3 /data/data/com.google.android.gsf/databases/gservices.db \"select value from main where name = 'android_id';\"" 2>/dev/null) || {
+android_id=$(sudo waydroid shell -- sh -c "sqlite3 /data/data/com.google.android.gsf/databases/gservices.db \"select value from main where name = 'android_id';\"" 2>/dev/null) || {
   echo "Error: Waydroid not running or GSF not installed"
   exit 1
 }

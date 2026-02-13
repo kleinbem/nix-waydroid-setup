@@ -1,62 +1,75 @@
 # nix-waydroid-setup
 
-Waydroid setup for NixOS. Single command to install Magisk, ARM translation, and Play Integrity patches.
+Waydroid setup for NixOS with Magisk, ARM translation, and Play Integrity patches.
 
-## What it does
+## Features
 
+- **Magisk Delta** - Root with MagiskHide
 - **Libhoudini** - ARM translation for x86_64
 - **Widevine** - DRM for streaming (L3)
-- **Magisk Delta** - Root with Zygisk
-- **PlayIntegrityFix** - Pass Device/Basic attestation
+- **PlayIntegrityFork** - Pass Play Integrity attestation
+- **Pre-configured** - Clipboard, multi-window, fake WiFi
 
-## Usage
+## Quick Start
 
-### 1. NixOS Module Integration (Recommended)
+```bash
+# Complete setup in one command
+just setup
 
-Add this flake to your inputs and enable the module:
+# Or step by step:
+just wipe         # Clean slate
+just init-fast    # Download images
+just install      # Patch with Magisk/Houdini/Widevine
+just restart      # Start session
+just activate     # Configure MagiskHide + PIF
+```
+
+## Commands
+
+### Setup & Management
+| Command | Description |
+|---------|-------------|
+| `just setup` | Complete automated setup |
+| `just wipe` | Remove all Waydroid data |
+| `just install` | Patch images with Magisk/Houdini/Widevine |
+| `just activate` | Configure MagiskHide + install PIF |
+
+### Daily Usage
+| Command | Description |
+|---------|-------------|
+| `just show` | Launch Waydroid UI |
+| `just restart` | Restart session |
+| `just stop` | Stop completely |
+| `just shell` | Enter Android shell |
+| `just log` | View live logs |
+
+### Utilities
+| Command | Description |
+|---------|-------------|
+| `just status` | Check Waydroid/Magisk status |
+| `just get-id` | Get Android ID for registration |
+| `just clear-gms` | Clear Play Store data |
+| `just install-apps` | Install F-Droid, Aurora Store, YASNAC |
+
+## NixOS Module
 
 ```nix
 # flake.nix
 inputs.nix-waydroid-setup.url = "github:kleinbem/nix-waydroid-setup";
 
-# In your machine configuration
+# configuration.nix
 imports = [ inputs.nix-waydroid-setup.nixosModules.default ];
 programs.waydroid-setup.enable = true;
 ```
 
-This automatically handles:
-- Kernel parameters (`psi=1`) and modules (`uhid`, `binder_linux`).
-- Reliable networking (pre-creates `waydroid0` bridge).
-- Installs the setup tool and helpers.
+This handles kernel parameters, modules, and networking automatically.
 
-### 2. Manual Run
+## Post-Install
 
-If you don't want the module, just run it:
-
-```bash
-# Initialize Waydroid first
-waydroid init -s GAPPS -f
-
-# Run the installer
-sudo nix run github:kleinbem/nix-waydroid-setup
-```
-
-## Helper Apps
-
-| Command | Description |
-|---------|-------------|
-| `waydroid-setup` | Main installer (Magisk, Houdini, etc) |
-| `waydroid-get-id`| Get Android ID for Google registration |
-| `waydroid-status`| Check Waydroid/Magisk status |
-| `waydroid-update-pif`| Update PlayIntegrityFix to latest version |
-| `waydroid-restart`| Restart container and session |
-| `waydroid-uninstall`| Remove all patches and restore clean state |
-
-## Post-install
-
-1. Open Magisk app → verify Zygisk is enabled.
-2. Run `waydroid-get-id` and register at https://www.google.com/android/uncertified/
-3. Wait ~20 minutes for Google to sync.
+1. Run `just status` to verify Magisk and PIF are working
+2. Open YASNAC to check Play Integrity (install with `just install-apps`)
+3. If not certified: `just get-id` → register at https://www.google.com/android/uncertified/
+4. Wait 10-30 minutes, then `just clear-gms && just restart`
 
 ## License
 

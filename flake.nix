@@ -6,7 +6,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = inputs@{ flake-parts, nixpkgs, ... }:
+  outputs = inputs@{ self, flake-parts, nixpkgs, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" ];
 
@@ -82,6 +82,34 @@
             runtimeInputs = runtimeDeps;
             text = builtins.readFile ./scripts/restart.sh;
           };
+
+          activateScript = pkgs.writeShellApplication {
+            name = "waydroid-activate";
+            runtimeInputs = runtimeDeps;
+            text = builtins.readFile ./scripts/activate.sh;
+          };
+
+          checkScript = pkgs.writeShellApplication {
+            name = "waydroid-check";
+            runtimeInputs = runtimeDeps;
+            text = builtins.readFile ./scripts/check.sh;
+          };
+
+          updateHashesScript = pkgs.writeShellScriptBin "waydroid-update-hashes" ''
+            ${pkgs.nix}/bin/nix-prefetch-url "https://downloads.sourceforge.net/project/waydroid/images/vendor/waydroid_x86_64/lineage-20.0-20250809-MAINLINE-waydroid_x86_64-vendor.zip"
+          '';
+
+          # Waydroid Images package
+          images = pkgs.stdenv.mkDerivation {
+            name = "waydroid-images";
+            nativeBuildInputs = [ pkgs.unzip ];
+            dontUnpack = true;
+            installPhase = ''
+              mkdir -p $out
+              unzip -p ${sources.system_img} system.img > $out/system.img
+              unzip -p ${sources.vendor_img} vendor.img > $out/vendor.img
+            '';
+          };
         in
         {
           packages = {
@@ -92,7 +120,10 @@
             uninstall = uninstallScript;
             update-pif = updatePifScript;
             restart = restartScript;
-            inherit assets;
+            activate = activateScript;
+            check = checkScript;
+            update-hashes = updateHashesScript;
+            inherit assets images;
           };
 
           devShells.default = pkgs.mkShell {
@@ -106,6 +137,20 @@
             uninstall = { type = "app"; program = "${uninstallScript}/bin/waydroid-uninstall"; };
             update-pif = { type = "app"; program = "${updatePifScript}/bin/waydroid-update-pif"; };
             restart = { type = "app"; program = "${restartScript}/bin/waydroid-restart"; };
+            activate = { type = "app"; program = "${activateScript}/bin/waydroid-activate"; };
+            check = { type = "app"; program = "${checkScript}/bin/waydroid-check"; };
+            update-hashes = { type = "app"; program = "${updateHashesScript}/bin/waydroid-update-hashes"; };
+            init-nix = {
+              type = "app";
+              program = toString (pkgs.writeShellScript "waydroid-init-nix" ''
+                sudo mkdir -p /var/lib/waydroid/images
+                echo "[*] Installing Waydroid images from Nix store..."
+                sudo cp -f ${images}/system.img /var/lib/waydroid/images/system.img
+                sudo cp -f ${images}/vendor.img /var/lib/waydroid/images/vendor.img
+                sudo waydroid init
+                echo "[*] Done! Now run: sudo waydroid-setup"
+              '');
+            };
           };
         };
 
